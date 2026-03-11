@@ -1,13 +1,8 @@
 #ifndef MULTITHREADING_H
 #define MULTITHREADING_H
 
-
-
 #include "list.h"
-
-
 #include <pthread.h>
-
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -15,11 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
 /**
  * struct pixel_s - RGB pixel
- *
  * @r: Red component
  * @g: Green component
  * @b: Blue component
@@ -33,9 +25,8 @@ typedef struct pixel_s
 
 /**
  * struct img_s - Image
- *
- * @w:      Image width
- * @h:      Image height
+ * @w: Image width
+ * @h: Image height
  * @pixels: Array of pixels
  */
 typedef struct img_s
@@ -47,8 +38,7 @@ typedef struct img_s
 
 /**
  * struct kernel_s - Convolution kernel
- *
- * @size:   Size of the matrix (both width and height)
+ * @size: Size of the matrix (both width and height)
  * @matrix: Kernel matrix
  */
 typedef struct kernel_s
@@ -59,14 +49,13 @@ typedef struct kernel_s
 
 /**
  * struct blur_portion_s - Information needed to blur a portion of an image
- *
- * @img:		Source image
- * @img_blur:	Destination image
- * @x:			X position of the portion in the image
- * @y:			Y position of the portion in the image
- * @w:			Width of the portion
- * @h:			Height of the portion
- * @kernel:		Convolution kernel to use
+ * @img: Source image
+ * @img_blur: Destination image
+ * @x: X position of the portion in the image
+ * @y: Y position of the portion in the image
+ * @w: Width of the portion
+ * @h: Height of the portion
+ * @kernel: Convolution kernel to use
  */
 typedef struct blur_portion_s
 {
@@ -79,12 +68,10 @@ typedef struct blur_portion_s
 	kernel_t const *kernel;
 } blur_portion_t;
 
-
 typedef void *(*task_entry_t)(void *);
 
 /**
  * enum task_status_e - Task statuses
- *
  * @PENDING: Task is pending
  * @STARTED: Task has been started
  * @SUCCESS: Task has completed successfully
@@ -100,12 +87,11 @@ typedef enum task_status_e
 
 /**
  * struct task_s - Executable task structure
- *
- * @entry:  Pointer to a function to serve as the task entry
- * @param:  Address to a custom content to be passed to the entry function
+ * @entry: Pointer to a function to serve as the task entry
+ * @param: Address to a custom content to be passed to the entry function
  * @status: Task status, default to PENDING
  * @result: Stores the return value of the entry function
- * @lock:   Task mutex
+ * @lock: Task mutex
  */
 typedef struct task_s
 {
@@ -116,19 +102,16 @@ typedef struct task_s
 	pthread_mutex_t lock;
 } task_t;
 
-
 __attribute__((constructor)) void mutex_create(void);
 __attribute__((destructor)) void mutex_destroy(void);
 
-
 void *thread_entry(void *arg);
-int tprintf(char const *format, ...);
+void blur_portion(blur_portion_t const *portion);
 int tprintf(char const *format, ...);
 list_t *prime_factors(char const *s);
 unsigned long int lim_binary(unsigned long int n);
 task_t *create_task(task_entry_t entry, void *param);
 void destroy_task(task_t *task);
 void *exec_tasks(list_t const *tasks);
-
 
 #endif
