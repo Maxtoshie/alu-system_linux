@@ -10,8 +10,9 @@ void blur_portion(blur_portion_t const *portion)
     size_t k_size, k_offset;
     float r, g, b, weight;
     pixel_t *src_pixels, *dest_pixels;
+    pixel_t p; /* Declared at the start */
+    size_t cur_y, cur_x;
 
-    /* Proper validation: Check for NULL and return immediately */
     if (!portion || !portion->img || !portion->img_blur || !portion->kernel)
         return;
 
@@ -29,20 +30,23 @@ void blur_portion(blur_portion_t const *portion)
             {
                 for (k_col = 0; k_col < k_size; k_col++)
                 {
-                    size_t cur_y = j + k_row - k_offset;
-                    size_t cur_x = i + k_col - k_offset;
+                    cur_y = j + k_row - k_offset;
+                    cur_x = i + k_col - k_offset;
 
                     if (cur_y < portion->img->h && cur_x < portion->img->w)
                     {
                         weight = portion->kernel->matrix[k_row][k_col];
-                        pixel_t p = src_pixels[cur_y * portion->img->w + cur_x];
-                        r += p.r * weight;
-                        g += p.g * weight;
-                        b += p.b * weight;
+                        p = src_pixels[cur_y * portion->img->w + cur_x];
+                        r += (float)p.r * weight;
+                        g += (float)p.g * weight;
+                        b += (float)p.b * weight;
                     }
                 }
             }
-            dest_pixels[j * portion->img->w + i] = (pixel_t){(uint8_t)r, (uint8_t)g, (uint8_t)b};
+            /* C90 safe assignment */
+            dest_pixels[j * portion->img->w + i].r = (uint8_t)r;
+            dest_pixels[j * portion->img->w + i].g = (uint8_t)g;
+            dest_pixels[j * portion->img->w + i].b = (uint8_t)b;
         }
     }
 }
