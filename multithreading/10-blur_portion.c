@@ -1,58 +1,106 @@
 #include "multithreading.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define NUM_PIXELS(img) ((img)->w * (img)->h)
+#define PORTION_START_INDEX(p) ((p)->y * (p)->img->w + (p)->x)
+#define PORTION_END_INDEX(p) (((p)->y + (p)->h) * (p)->img->w)
+
+void apply_blur_to_pixel(const blur_portion_t *portion, size_t target_index);
+
+int is_valid_neighbor(const blur_portion_t *portion, int neighbor_index,
+size_t target_index);
+
 /**
- * blur_portion - Blurs a portion of an image using a Gaussian Blur
- * @portion: Pointer to the blur_portion_t structure
+ * blur_portion - Applies Gaussian Blur to a specific portion of an image
+ * @portion: Pointer to the data structure describing the portion of the image
+ * Author: Frank Onyema Orji
  */
-void blur_portion(blur_portion_t const *portion)
+void blur_portion(const blur_portion_t *portion)
 {
-	size_t x, y, k_row, k_col;
-	size_t k_size, k_offset;
-	float r, g, b, weight;
-	int cur_x, cur_y;
-	pixel_t *src_pixels, *dest_pixels;
-	size_t img_w, img_h;
+	size_t row, col, i, end;
 
-	if (!portion || !portion->img || !portion->img_blur || !portion->kernel)
-		return;
+	end = MIN(PORTION_END_INDEX(portion), NUM_PIXELS(portion->img));
 
-	src_pixels = portion->img->pixels;
-	dest_pixels = portion->img_blur->pixels;
-
-	img_w = portion->img->w;
-	img_h = portion->img->h;
-
-	k_size = portion->kernel->size;
-	k_offset = k_size / 2;
-
-	for (y = portion->y; y < portion->y + portion->h; y++)
+	for (row = PORTION_START_INDEX(portion); row < end; row += portion->img->w)
 	{
-		for (x = portion->x; x < portion->x + portion->w; x++)
+		for (col = 0; col < portion->w; col++)
 		{
-			r = g = b = 0.0;
-
-			for (k_row = 0; k_row < k_size; k_row++)
-			{
-				for (k_col = 0; k_col < k_size; k_col++)
-				{
-					cur_y = (int)y + (int)k_row - (int)k_offset;
-					cur_x = (int)x + (int)k_col - (int)k_offset;
-
-					if (cur_y >= 0 && cur_y < (int)img_h &&
-					    cur_x >= 0 && cur_x < (int)img_w)
-					{
-						weight = portion->kernel->matrix[k_row][k_col];
-
-						r += src_pixels[cur_y * img_w + cur_x].r * weight;
-						g += src_pixels[cur_y * img_w + cur_x].g * weight;
-						b += src_pixels[cur_y * img_w + cur_x].b * weight;
-					}
-				}
-			}
-
-			dest_pixels[y * img_w + x].r = (uint8_t)(r + 0.5);
-			dest_pixels[y * img_w + x].g = (uint8_t)(g + 0.5);
-			dest_pixels[y * img_w + x].b = (uint8_t)(b + 0.5);
+			i = row + col;
+			if (col && i % portion->img->w == 0)
+				break;
+			apply_blur_to_pixel(portion, i);
 		}
 	}
+}
+
+/**
+ * apply_blur_to_pixel - Applies Gaussian Blur to a single pixel
+ * @portion: Pointer to the structure describing the image portion
+ * @target_index: Index of the pixel to blur
+ */
+void apply_blur_to_pixel(const blur_portion_t *portion, size_t target_index)
+{
+	float r = 0, g = 0, b = 0, sum = 0, weight;
+
+	pixel_t *pixel;
+	int neighbor_index;
+
+	size_t i, j;
+
+	neighbor_index = target_index - (portion->kernel->size / 2) *
+	  (1 + portion->img->w);
+
+	for (i = 0; i < portion->kernel->size; i++)
+	{
+		for (j = 0; j < portion->kernel->size; j++)
+		{
+			if (is_valid_neighbor(portion, neighbor_index + j, target_index))
+			{
+				pixel = &(portion->img->pixels[neighbor_index + j]);
+				weight = portion->kernel->matrix[i][j];
+				r += pixel->r * weight;
+				g += pixel->g * weight;
+				b += pixel->b * weight;
+				sum += weight;
+			}
+		}
+
+		neighbor_index += portion->img->w;
+	}
+
+	pixel = &(portion->img_blur->pixels[target_index]);
+	pixel->r = (int)(r / sum);
+	pixel->g = (int)(g / sum);
+	pixel->b = (int)(b / sum);
+}
+
+/**
+ * is_valid_neighbor - Checks if a given pixel index is a valid neighbor
+ * @portion: Pointer to the structure describing the image portion
+ * @neighbor_index: Index of the candidate neighbor pixel
+ * @target_index: Index of the target pixel
+ * Return: 1 if valid, 0 otherwise
+ */
+int is_valid_neighbor(const blur_portion_t *portion, int neighbor_index,
+size_t target_index)
+{
+	int target_col, neighbor_col, kernel_size = (int)portion->kernel->size;
+	int total_pixels = portion->img->h * portion->img->w;
+	int row_width = (int)portion->img->w;
+
+	/* Ensure neighbor_index is within valid range */
+	if (neighbor_index < 0 || neighbor_index >= total_pixels)
+		return (0);
+
+	/* Handle boundary cases for target_index */
+	target_col = (int)(target_index % row_width);
+	neighbor_col = (int)(neighbor_index % row_width);
+
+	if (target_col - (kernel_size / 2) < 0)
+		return (neighbor_col + (kernel_size / 2) < row_width);
+
+	if (target_col + (kernel_size / 2) >= row_width)
+		return (neighbor_col - (kernel_size / 2) >= 0);
+
+	return (1);
 }
