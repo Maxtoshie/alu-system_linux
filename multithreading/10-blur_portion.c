@@ -18,6 +18,7 @@ void blur_portion(blur_portion_t const *portion)
 
 	src_pixels = portion->img->pixels;
 	dest_pixels = portion->img_blur->pixels;
+
 	img_w = portion->img->w;
 	img_h = portion->img->h;
 
@@ -28,9 +29,7 @@ void blur_portion(blur_portion_t const *portion)
 	{
 		for (x = portion->x; x < portion->x + portion->w; x++)
 		{
-			r = 0.0;
-			g = 0.0;
-			b = 0.0;
+			r = g = b = 0.0;
 
 			for (k_row = 0; k_row < k_size; k_row++)
 			{
@@ -51,9 +50,9 @@ void blur_portion(blur_portion_t const *portion)
 				}
 			}
 
-			dest_pixels[y * img_w + x].r = (uint8_t)r;
-			dest_pixels[y * img_w + x].g = (uint8_t)g;
-			dest_pixels[y * img_w + x].b = (uint8_t)b;
+			dest_pixels[y * img_w + x].r = (uint8_t)(r + 0.5);
+			dest_pixels[y * img_w + x].g = (uint8_t)(g + 0.5);
+			dest_pixels[y * img_w + x].b = (uint8_t)(b + 0.5);
 		}
 	}
 }
