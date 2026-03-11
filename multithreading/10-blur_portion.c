@@ -29,20 +29,24 @@ void blur_portion(blur_portion_t const *portion)
 			{
 				for (k_col = 0; k_col < k_size; k_col++)
 				{
-					/* Calculate and check for top/left overflow before assigning to size_t */
-					cur_y = j + k_row - k_offset;
-					cur_x = i + k_col - k_offset;
-
-					/* Strict boundary check for all 4 sides */
-					if (cur_y < portion->img->h && cur_x < portion->img->w)
+					/* Safe boundary check: avoid underflow before subtraction */
+					if ((j + k_row >= k_offset) && (i + k_col >= k_offset))
 					{
-						weight = portion->kernel->matrix[k_row][k_col];
-						r += src_pixels[cur_y * portion->img->w + cur_x].r * weight;
-						g += src_pixels[cur_y * portion->img->w + cur_x].g * weight;
-						b += src_pixels[cur_y * portion->img->w + cur_x].b * weight;
+						cur_y = j + k_row - k_offset;
+						cur_x = i + k_col - k_offset;
+
+						/* Check upper bounds against image dimensions */
+						if (cur_y < portion->img->h && cur_x < portion->img->w)
+						{
+							weight = portion->kernel->matrix[k_row][k_col];
+							r += (float)src_pixels[cur_y * portion->img->w + cur_x].r * weight;
+							g += (float)src_pixels[cur_y * portion->img->w + cur_x].g * weight;
+							b += (float)src_pixels[cur_y * portion->img->w + cur_x].b * weight;
+						}
 					}
 				}
 			}
+			/* Final pixel assignment */
 			dest_pixels[j * portion->img->w + i].r = (uint8_t)r;
 			dest_pixels[j * portion->img->w + i].g = (uint8_t)g;
 			dest_pixels[j * portion->img->w + i].b = (uint8_t)b;
